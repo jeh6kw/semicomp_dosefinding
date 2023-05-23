@@ -1,0 +1,45 @@
+
+functions{ 
+  real semicomplogcp_lpdf(real y1, real y2, real delta1, real delta2, real dose0, real dose1,
+                            real lambda1, real lambda2, real beta) {
+    
+    real l;
+    
+    l= (1-delta1)*(1-delta2)*(-lambda1*dose0*y1-lambda2*dose0*y1)+
+       (delta2-delta1)*delta2*(log(lambda2)+log(dose0)-lambda1*dose0*y1-lambda2*dose0*y1)+
+       (delta1-delta2)*delta1*(log(lambda1)+log(dose0)-lambda1*dose0*y1-lambda2*dose0*y1-lambda2*dose1^exp(beta)*y2+lambda2*dose1^exp(beta)*y1)+
+       delta1*delta2*(log(lambda1)+log(dose0)+log(lambda2)+exp(beta)*log(dose1)-lambda1*dose0*y1-lambda2*dose0*y1-lambda2*dose1^exp(beta)*y2+lambda2*dose1^exp(beta)*y1);
+
+    
+    //return log likelihood
+    return l;
+  }
+}
+
+data {
+  int<lower=0> N; // number of patients
+  vector[N] y1; 
+  vector[N] y2; 
+  vector[N] delta1; 
+  vector[N] delta2; 
+  vector[N] dose0; 
+  vector[N] dose1;
+    
+}
+parameters {
+  real<lower=0> lambda1; // this specfies lambda1 as uniform prior with lower bound in one step
+  real<lower=0, upper=lambda1> lambda2; // lambda2 must be less than lambda1
+  real<lower=-3, upper =3> beta;
+}
+transformed parameters {
+  real expbeta = exp(beta);
+}
+model {
+  lambda1 ~ normal(0.2, 0.2);
+  lambda2 ~ normal(0.1,0.2);
+  beta ~ normal(0.5,2);
+  for(n in 1:N) {
+    y1[n] ~ semicomplogcp(y2[n],delta1[n],delta2[n],dose0[n],dose1[n],lambda1, lambda2, beta);
+  }
+}
+
